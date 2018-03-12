@@ -11,11 +11,11 @@ then
     mkdir "$WORKDIR"
     git clone https://github.com/Tayamarn/fmf_bot.git $WORKDIR
     virtualenv $WORKDIR/venv
-    source $HOMEPAGE_WORK_DIR/venv/bin/activate
+    source $WORKDIR/venv/bin/activate
     pip install telepot
     deactivate
 fi
 
-cp ${WORKDIR%/*}/supervisor.conf /etc/supervisor/conf.d/fmf_bot.conf
+cp ${WORKDIR}/supervisor.conf /etc/supervisor/conf.d/fmf_bot.conf
 supervisorctl reload
 supervisorctl restart fmf_bot

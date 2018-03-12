@@ -69,7 +69,7 @@ def handle(msg):
 
 if __name__ == '__main__':
     with open('/root/fmf_bot_token', 'r') as f:
-        token = f.read()
+        token = f.read().strip()
     bot = telepot.Bot(token)
 
     MessageLoop(bot, handle).run_as_thread()
