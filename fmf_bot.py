@@ -9,6 +9,10 @@ from telepot.loop import MessageLoop
 
 OWN_NAME = 'fmf_robot'
 
+NO_NICKNAME_MSG = '''К сожалению, этот бот может работать только с людьми, у которых заполнен никнейм в профиле. 🙁
+Заполни его и приходи еще раз!
+'''
+
 HELP_MESSAGE = '''Этот бот предназначен для поиска сексуальных партнёров среди ваших друзей.
 Доступные команды:
 /add <name1> <name2>... – добавить в список симпатичных вам людей одного или нескольких разделённых пробелами людей
@@ -121,9 +125,12 @@ def check_new_matches(connection, member_id, new_matches):
 
 def handle(msg):
     chat_id = msg['chat']['id']
+    try:
+        member_name = msg['from']['username']
+    except KeyError:
+        bot.sendMessage(chat_id, NO_NICKNAME_MSG)
     command = msg['text']
     member_id = msg['from']['id']
-    member_name = msg['from']['username']
     db_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                            'fmf.db')
     connection = sqlite3.connect(db_path)
