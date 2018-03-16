@@ -143,7 +143,7 @@ def handle(msg):
         bot.sendMessage(chat_id, likes_message(connection, member_id))
     elif command.startswith('/remove '):
         for name in command[len('/remove '):].split(' '):
-            remove_match(connection, member_id, match_name)
+            remove_match(connection, member_id, name)
         bot.sendMessage(chat_id, likes_message(connection, member_id))
     elif command.startswith('/list'):
         bot.sendMessage(chat_id, likes_message(connection, member_id))
