@@ -138,7 +138,7 @@ def handle(msg):
     elif command.startswith('/list'):
         bot.sendMessage(chat_id, likes_message(connection, member_id))
     elif command.startswith('/matches'):
-        bot.sendMessage(chat_id, matches_message(member_id))
+        bot.sendMessage(chat_id, matches_message(connection, member_id))
     else:
         bot.sendMessage(chat_id, 'Я не знаю такой команды')
 
