@@ -7,7 +7,7 @@ import time
 import telepot
 from telepot.loop import MessageLoop
 
-OWN_NAME = 'tayamarn_reactor_bot'
+OWN_NAME = 'fmf_robot'
 
 HELP_MESSAGE = '''Этот бот предназначен для поиска сексуальных партнёров среди ваших друзей.
 Доступные команды:
