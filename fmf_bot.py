@@ -102,11 +102,11 @@ def remove_match(connection, member_id, match_name):
 
 def congratulations_messages(connection, member_id, match):
     cur = connection.cursor()
-    cur.execute('SELECT name, chat_id FROM members WHERE id=?',
+    cur.execute('SELECT name, chat FROM members WHERE id=?',
                 (member_id,))
     name, chat_id = cur.fetchone()[0]
     bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(match))
-    cur.execute('SELECT chat_id FROM members WHERE name=?',
+    cur.execute('SELECT chat FROM members WHERE name=?',
                 (match,))
     chat_id = cur.fetchone()[0]
     bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(name))
