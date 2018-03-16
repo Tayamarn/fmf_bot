@@ -104,6 +104,7 @@ def congratulations_messages(connection, member_id, match):
     cur = connection.cursor()
     cur.execute('SELECT name, chat FROM members WHERE id=?',
                 (member_id,))
+    print(cur.fetchone())
     name, chat_id = cur.fetchone()[0]
     bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(match))
     cur.execute('SELECT chat FROM members WHERE name=?',
