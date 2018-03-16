@@ -59,10 +59,10 @@ def member_likes(connection, member_id):
 
 
 def likes_message(connection, member_id):
-    likes = member_likes(connection, member_id)
+    likes = [l.encode('utf8') for l in member_likes(connection, member_id)]
     if not likes:
         return 'Вы пока никого не добавили в список.'
-    return 'Ваш список: {}'.format(', '.join(sorted(likes.encode('utf8'))))
+    return 'Ваш список: {}'.format(', '.join(sorted(likes)))
 
 
 def member_matches(connection, member_id):
