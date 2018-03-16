@@ -78,7 +78,7 @@ def matches_message(connection, member_id):
 
 def add_match(connection, member_id, match_name):
     cur = connection.cursor()
-    cur.execute('INSERT INTO matches VALUES (?, ?)',
+    cur.execute('INSERT INTO matches (member_id, match_name) VALUES (?, ?)',
                 (member_id, match_name))
     connection.commit()
 
