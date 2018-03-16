@@ -32,7 +32,7 @@ def member_changed_name(connection, member_id, member_name):
 
 def update_name(connection, member_id, member_name):
     cur = connection.cursor()
-    cur.execute('UPDATE members SET (?) WHERE id=?',
+    cur.execute('UPDATE members SET (name=?) WHERE id=?',
                 (member_name, member_id))
     connection.commit()
 
