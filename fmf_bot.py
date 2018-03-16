@@ -62,7 +62,7 @@ def likes_message(connection, member_id):
     likes = member_likes(connection, member_id)
     if not likes:
         return 'Вы пока никого не добавили в список.'
-    return 'Ваш список: {}'.format(', '.join(sorted(likes)))
+    return 'Ваш список: {}'.format(', '.join(sorted(likes.encode('utf8'))))
 
 
 def member_matches(connection, member_id):
@@ -85,7 +85,7 @@ def matches_message(connection, member_id):
     matches = member_matches(connection, member_id)
     if matches:
         return 'У вас взаимный интерес с этими людьми: {}'.format(
-            ', '.join(sorted(matches)))
+            ', '.join(sorted(matches.encode('utf8'))))
     else:
         return 'Пока у вас нет взаимного интереса ни с кем, но не сдавайтесь!'
 
@@ -109,11 +109,11 @@ def congratulations_messages(connection, member_id, match):
     cur.execute('SELECT name, chat FROM members WHERE id=?',
                 (member_id,))
     name, chat_id = cur.fetchone()
-    bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(match))
+    bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(match.encode('utf8')))
     cur.execute('SELECT chat FROM members WHERE name=?',
                 (match,))
     chat_id = cur.fetchone()[0]
-    bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(name))
+    bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(name.encode('utf8')))
 
 
 def check_new_matches(connection, member_id, new_matches):
