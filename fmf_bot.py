@@ -9,6 +9,16 @@ from telepot.loop import MessageLoop
 
 OWN_NAME = 'tayamarn_reactor_bot'
 
+HELP_MESSAGE = '''Этот бот предназначен для поиска сексуальных партнёров среди ваших друзей.
+Доступные команды:
+/add <name1> <name2>... – добавить в список симпатичных вам людей одного или нескольких разделённых пробелами людей
+/remove <name1> <name2>... – убрать людей из списка
+/list – показывает список интересных вам людей
+/matches – показывает список людей, с которыми у вас появилась взаимность
+/help – выводит это сообщение
+Удачи в поисках!
+'''
+
 
 def member_in_db(connection, member_id):
     cur = connection.cursor()
@@ -139,6 +149,8 @@ def handle(msg):
         bot.sendMessage(chat_id, likes_message(connection, member_id))
     elif command.startswith('/matches'):
         bot.sendMessage(chat_id, matches_message(connection, member_id))
+    elif command.startswith('/start') or command.startswith('/help'):
+        bot.sendMessage(chat_id, HELP_MESSAGE)
     else:
         bot.sendMessage(chat_id, 'Я не знаю такой команды')
 
