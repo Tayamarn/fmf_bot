@@ -82,10 +82,10 @@ def is_match(connection, member_id, name):
 
 
 def matches_message(connection, member_id):
-    matches = member_matches(connection, member_id)
+    matches = [m.encode('utf8') for m in member_matches(connection, member_id)]
     if matches:
         return 'У вас взаимный интерес с этими людьми: {}'.format(
-            ', '.join(sorted(matches.encode('utf8'))))
+            ', '.join(sorted(matches)))
     else:
         return 'Пока у вас нет взаимного интереса ни с кем, но не сдавайтесь!'
 
