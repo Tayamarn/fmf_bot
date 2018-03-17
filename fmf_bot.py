@@ -163,7 +163,9 @@ def handle(msg):
              msg += "\n" + invalid_nicks_message(invalid_nicks)
         bot.sendMessage(chat_id, msg)
     elif command.startswith('/remove '):
-        for name in command[len('/remove '):].split(' '):
+        for name in re.split("[,\s\.;]+", command[len('/remove '):]):
+            if not name.startswith('@'):
+                name = '@' + name
             remove_match(connection, member_id, name)
         bot.sendMessage(chat_id, likes_message(connection, member_id))
     elif command.startswith('/list'):
