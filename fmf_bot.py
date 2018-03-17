@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import os
+import re
 import sqlite3
 import time
 
@@ -19,6 +20,7 @@ HELP_MESSAGE = '''Этот бот предназначен для поиска �
 {0}
 Удачи в поисках!
 '''
+WORKDIR = os.path.abspath(os.path.dirname(__file__))
 
 command_parser = CommandParser()
 
@@ -100,6 +102,10 @@ def likes_message(connection, member_id):
     return 'Ваш список: {}'.format(', '.join(sorted(likes)))
 
 
+def invalid_nicks_message(invalid_nicks):
+    return 'Это - не имена пользователей! Повнимательнее :)\n{}'.format(', '.join(invalid_nicks))
+
+
 def member_matches(connection, member_id):
     cur = connection.cursor()
     cur.execute('''
@@ -165,14 +171,26 @@ def show_help(chat_id):
 def handle_add_command(params, connection, member_id, chat_id):
     if OWN_NAME in params:
         bot.sendMessage(chat_id, 'Это так неожиданно! 😘')
-    for match_name in params:
+    valid_nick_pattern = re.compile('^\@?[A-Za-z]\w{4}\w+$')
+    invalid_nicks = []
+    for match_name in new_matches:
+        if not valid_nick_pattern.match(match_name):
+            invalid_nicks.append(match_name)
+            continue
+        if not match_name.startswith('@'):
+            match_name = '@' + match_name
         add_match(connection, member_id, match_name)
     check_new_matches(connection, member_id, params)
-    bot.sendMessage(chat_id, likes_message(connection, member_id))
+    msg = likes_message(connection, member_id)
+    if invalid_nicks:
+        msg = '\n'.join([msg, invalid_nicks_message(invalid_nicks)])
+    bot.sendMessage(chat_id, msg)
 
 
 def handle_remove_command(params, connection, member_id, chat_id):
     for name in params:
+        if not name.startswith('@'):
+            name = '@' + name
         remove_match(connection, member_id, name)
     bot.sendMessage(chat_id, likes_message(connection, member_id))
 
@@ -192,33 +210,35 @@ def handle_command(command, connection, member_id, chat_id):
         bot.sendMessage(chat_id, 'Команда ещё не реализована, потерпите немного.')
         show_help(chat_id)
 
-
 def handle(msg):
     chat_id = msg['chat']['id']
     try:
-        member_name = msg['from']['username']
+        member_name = '@' + msg['from']['username']
     except KeyError:
         bot.sendMessage(chat_id, NO_NICKNAME_MSG)
     command = command_parser.parse(msg['text'])
     member_id = msg['from']['id']
-    db_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                           'fmf.db')
+    db_path = os.path.join(WORKDIR, 'fmf.db')
     connection = sqlite3.connect(db_path)
 
     if not member_in_db(connection, member_id):
         add_member(connection, member_id, member_name, chat_id)
     elif member_changed_name(connection, member_id, member_name):
         update_name(connection, member_id, member_name)
-
     handle_command(command, connection, member_id, chat_id)
+
+
+def read_token():
+    token_file_name = os.path.join(WORKDIR, 'fmf_bot_token')
+    if not os.path.isfile(token_file_name):
+        token_file_name = '/root/fmf_bot_token'
+    with open(token_file_name, 'r') as f:
+        return f.read().strip()
 
 
 if __name__ == '__main__':
     init_command_parser()
-
-    with open('/root/fmf_bot_token', 'r') as f:
-        token = f.read().strip()
-    bot = telepot.Bot(token)
+    bot = telepot.Bot(read_token())
 
     MessageLoop(bot, handle).run_as_thread()
     while 1:
