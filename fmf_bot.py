@@ -131,8 +131,7 @@ def handle(msg):
         bot.sendMessage(chat_id, NO_NICKNAME_MSG)
     command = msg['text']
     member_id = msg['from']['id']
-    db_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
-                           'fmf.db')
+    db_path = os.path.join(WORKDIR, 'fmf.db')
     connection = sqlite3.connect(db_path)
 
     if not member_in_db(connection, member_id):
@@ -161,10 +160,18 @@ def handle(msg):
     else:
         bot.sendMessage(chat_id, 'Я не знаю такой команды')
 
+
+def read_token():
+    token_file_name = os.path.join(WORKDIR, 'fmf_bot_token')
+    if not os.path.isfile(token_file_name):
+        token_file_name = '/root/fmf_bot_token'
+    with open(token_file_name, 'r') as f:
+        return f.read().strip()
+
+
 if __name__ == '__main__':
-    with open('/root/fmf_bot_token', 'r') as f:
-        token = f.read().strip()
-    bot = telepot.Bot(token)
+    WORKDIR = os.path.abspath(os.path.dirname(__file__))
+    bot = telepot.Bot(read_token())
 
     MessageLoop(bot, handle).run_as_thread()
     while 1:
