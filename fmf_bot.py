@@ -173,7 +173,7 @@ def handle_add_command(params, connection, member_id, chat_id):
         bot.sendMessage(chat_id, 'Это так неожиданно! 😘')
     valid_nick_pattern = re.compile('^\@?[A-Za-z]\w{4}\w+$')
     invalid_nicks = []
-    for match_name in new_matches:
+    for match_name in params:
         if not valid_nick_pattern.match(match_name):
             invalid_nicks.append(match_name)
             continue
