@@ -1,7 +1,15 @@
-#!/usr/bin/python
-# -*- coding: utf-8 -*-
+"""CommandParser module.
+Idea of the module is to create a common interface for custom commands set.
+Commands must start from the special prefix '/' (may be improved later).
+Parameters must be separated from the command by a space and can be splitted by space,
+dot, colon and semicolon.
+"""
+
+import re
 
 COMMAND_PREFIX = '/'
+COMMAND_SEPARATOR = ' '
+PARAMS_SEPARATORS = '[,\s\.;]+'
 
 
 class CommandDescription():
@@ -78,10 +86,14 @@ class CommandParser():
         if not input.startswith(COMMAND_PREFIX):
             return None
 
-        words = input.split(' ')
-        name = words[0][1:]
+        command_index = input.find(COMMAND_SEPARATOR)
+        if command_index < 0:
+            return None
+
+        name = input[1:command_index]
+        params = re.split(PARAMS_SEPARATORS, input[command_index + 1:])
+
         for c in self.commands:
             if name in c.names:
-                return Command(c.id, words[1:])
+                return Command(c.id, params)
         return None
-
