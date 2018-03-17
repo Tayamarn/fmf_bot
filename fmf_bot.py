@@ -6,6 +6,7 @@ import time
 
 import telepot
 from telepot.loop import MessageLoop
+from command_parser import CommandParser
 
 OWN_NAME = 'fmf_robot'
 
@@ -15,13 +16,47 @@ NO_NICKNAME_MSG = '''К сожалению, этот бот может рабо�
 
 HELP_MESSAGE = '''Этот бот предназначен для поиска сексуальных партнёров среди ваших друзей.
 Доступные команды:
-/add <name1> <name2>... – добавить в список симпатичных вам людей одного или нескольких разделённых пробелами людей
-/remove <name1> <name2>... – убрать людей из списка
-/list – показывает список интересных вам людей
-/matches – показывает список людей, с которыми у вас появилась взаимность
-/help – выводит это сообщение
+{0}
 Удачи в поисках!
 '''
+
+command_parser = CommandParser()
+
+
+class FmfBotCommand():
+    ADD = 1
+    REMOVE = 2
+    LIST = 3
+    MATCHES = 4
+    HELP = 5
+
+
+def init_command_parser():
+    global command_parser
+    command_parser.registerCommand(
+        FmfBotCommand.ADD,
+        ['a', 'add', 'like'],
+        'Добавить в список симпатичных вам людей одного или нескольких человек',
+        nargs='*',
+        arg_name='name')
+    command_parser.registerCommand(
+        FmfBotCommand.REMOVE,
+        ['rm', 'remove'],
+        'Удалить из списка симпатичных вам людей одного или нескольких человек',
+        nargs='*',
+        arg_name='name')
+    command_parser.registerCommand(
+        FmfBotCommand.LIST,
+        ['l', 'list'],
+        'Показать список симпатичных вам людей')
+    command_parser.registerCommand(
+        FmfBotCommand.MATCHES,
+        ['m', 'matches'],
+        'Показать список людей, с которыми у вас появилась взаимность')
+    command_parser.registerCommand(
+        FmfBotCommand.HELP,
+        ['h', 'help', 'start'],
+        'Выводит это сообщение')
 
 
 def member_in_db(connection, member_id):
@@ -123,13 +158,48 @@ def check_new_matches(connection, member_id, new_matches):
             congratulations_messages(connection, member_id, match)
 
 
+def show_help(chat_id):
+    bot.sendMessage(chat_id, HELP_MESSAGE.format(command_parser.getHelp()))
+
+
+def handle_add_command(params, connection, member_id, chat_id):
+    if OWN_NAME in params:
+        bot.sendMessage(chat_id, 'Это так неожиданно! 😘')
+    for match_name in params:
+        add_match(connection, member_id, match_name)
+    check_new_matches(connection, member_id, params)
+    bot.sendMessage(chat_id, likes_message(connection, member_id))
+
+
+def handle_remove_command(params, connection, member_id, chat_id):
+    for name in params:
+        remove_match(connection, member_id, name)
+    bot.sendMessage(chat_id, likes_message(connection, member_id))
+
+
+def handle_command(command, connection, member_id, chat_id):
+    if not command or command.id == FmfBotCommand.HELP:
+        show_help(chat_id)
+    elif command.id == FmfBotCommand.ADD:
+        handle_add_command(command.params, connection, member_id, chat_id)
+    elif command.id == FmfBotCommand.REMOVE:
+        handle_remove_command(command.params, connection, member_id, chat_id)
+    elif command.id == FmfBotCommand.LIST:
+        bot.sendMessage(chat_id, likes_message(connection, member_id))
+    elif command.id == FmfBotCommand.MATCHES:
+        bot.sendMessage(chat_id, matches_message(connection, member_id))
+    else:
+        bot.sendMessage(chat_id, 'Команда ещё не реализована, потерпите немного.')
+        show_help(chat_id)
+
+
 def handle(msg):
     chat_id = msg['chat']['id']
     try:
         member_name = msg['from']['username']
     except KeyError:
         bot.sendMessage(chat_id, NO_NICKNAME_MSG)
-    command = msg['text']
+    command = command_parser.parse(msg['text'])
     member_id = msg['from']['id']
     db_path = os.path.join(os.path.abspath(os.path.dirname(__file__)),
                            'fmf.db')
@@ -140,28 +210,12 @@ def handle(msg):
     elif member_changed_name(connection, member_id, member_name):
         update_name(connection, member_id, member_name)
 
-    if command.startswith('/add '):
-        if OWN_NAME in command[len('/add '):].split(' '):
-            bot.sendMessage(chat_id, 'Это так неожиданно! 😘')
-        new_matches = command[len('/add '):].split(' ')
-        for match_name in new_matches:
-            add_match(connection, member_id, match_name)
-        check_new_matches(connection, member_id, new_matches)
-        bot.sendMessage(chat_id, likes_message(connection, member_id))
-    elif command.startswith('/remove '):
-        for name in command[len('/remove '):].split(' '):
-            remove_match(connection, member_id, name)
-        bot.sendMessage(chat_id, likes_message(connection, member_id))
-    elif command.startswith('/list'):
-        bot.sendMessage(chat_id, likes_message(connection, member_id))
-    elif command.startswith('/matches'):
-        bot.sendMessage(chat_id, matches_message(connection, member_id))
-    elif command.startswith('/start') or command.startswith('/help'):
-        bot.sendMessage(chat_id, HELP_MESSAGE)
-    else:
-        bot.sendMessage(chat_id, 'Я не знаю такой команды')
+    handle_command(command, connection, member_id, chat_id)
+
 
 if __name__ == '__main__':
+    init_command_parser()
+
     with open('/root/fmf_bot_token', 'r') as f:
         token = f.read().strip()
     bot = telepot.Bot(token)
