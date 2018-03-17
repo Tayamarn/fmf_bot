@@ -1,6 +1,7 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 import os
+import re
 import sqlite3
 import time
 
@@ -63,6 +64,10 @@ def likes_message(connection, member_id):
     if not likes:
         return 'Вы пока никого не добавили в список.'
     return 'Ваш список: {}'.format(', '.join(sorted(likes)))
+
+
+def invalid_nicks_message(invalid_nicks):
+    return "Это - не имена пользователей! Повнимательнее :)\n{}".format(", ".join(invalid_nicks))
 
 
 def member_matches(connection, member_id):
@@ -142,11 +147,21 @@ def handle(msg):
     if command.startswith('/add '):
         if OWN_NAME in command[len('/add '):].split(' '):
             bot.sendMessage(chat_id, 'Это так неожиданно! 😘')
-        new_matches = command[len('/add '):].split(' ')
+        new_matches = re.split("[,\s\.;]+", command[len('/add '):])
+        valid_nick_pattern = re.compile("^\@?[A-Za-z]\w{4}\w+$")
+        invalid_nicks = []
         for match_name in new_matches:
+            if not valid_nick_pattern.match(match_name):
+                invalid_nicks.append(match_name)
+                continue
+            if not match_name.startswith('@'):
+                match_name = '@' + match_name
             add_match(connection, member_id, match_name)
         check_new_matches(connection, member_id, new_matches)
-        bot.sendMessage(chat_id, likes_message(connection, member_id))
+        msg = likes_message(connection, member_id)
+        if invalid_nicks:
+             msg += "\n" + invalid_nicks_message(invalid_nicks)
+        bot.sendMessage(chat_id, msg)
     elif command.startswith('/remove '):
         for name in command[len('/remove '):].split(' '):
             remove_match(connection, member_id, name)
