@@ -88,10 +88,11 @@ class CommandParser():
 
         command_index = input.find(COMMAND_SEPARATOR)
         if command_index < 0:
-            return None
-
-        name = input[1:command_index]
-        params = re.split(PARAMS_SEPARATORS, input[command_index + 1:])
+            name = input[1:]
+            params = []
+        else:
+            name = input[1:command_index]
+            params = re.split(PARAMS_SEPARATORS, input[command_index + 1:])
 
         for c in self.commands:
             if name in c.names:
