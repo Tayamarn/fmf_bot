@@ -135,7 +135,7 @@ def split_names(names_line):
 def handle(msg):
     chat_id = msg['chat']['id']
     try:
-        member_name = msg['from']['username']
+        member_name = '@' + msg['from']['username']
     except KeyError:
         bot.sendMessage(chat_id, NO_NICKNAME_MSG)
     command = msg['text']
