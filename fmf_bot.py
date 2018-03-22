@@ -70,7 +70,7 @@ def member_in_db(connection, member_id):
 
 def add_member(connection, member_id, member_name, chat_id):
     cur = connection.cursor()
-    cur.execute('INSERT INTO members VALUES (?, ?, ?)',
+    cur.execute('INSERT INTO members (id, name, chat) VALUES (?, ?, ?)',
                 (member_id, member_name, chat_id))
     connection.commit()
 
@@ -104,7 +104,8 @@ def likes_message(connection, member_id):
 
 
 def invalid_nicks_message(invalid_nicks):
-    return 'Это - не имена пользователей! Повнимательнее :)\n{}'.format(', '.join(invalid_nicks))
+    return 'Это - не имена пользователей! Повнимательнее :)\n{}'.format(
+        ', '.join([n.encode('utf8') for n in invalid_nicks]))
 
 
 def member_matches(connection, member_id):
@@ -160,6 +161,7 @@ def congratulations_messages(connection, member_id, match):
 
 def check_new_matches(connection, member_id, new_matches):
     matches = member_matches(connection, member_id)
+    new_matches = ['@' + n for n in new_matches if not n.startswith('@')]
     for match in new_matches:
         if match in matches:
             congratulations_messages(connection, member_id, match)
@@ -217,6 +219,7 @@ def handle(msg):
         member_name = '@' + msg['from']['username']
     except KeyError:
         bot.sendMessage(chat_id, NO_NICKNAME_MSG)
+        return
     command = command_parser.parse(msg['text'])
     member_id = msg['from']['id']
     db_path = os.path.join(WORKDIR, 'fmf.db')
