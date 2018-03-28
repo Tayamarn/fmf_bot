@@ -11,10 +11,6 @@ from command_parser import CommandParser
 
 OWN_NAME = 'fmf_robot'
 
-NO_NICKNAME_MSG = '''К сожалению, этот бот может работать только с людьми, у которых заполнен никнейм в профиле. 🙁
-Заполни его и приходи еще раз!
-'''
-
 HELP_MESSAGE = '''Этот бот предназначен для поиска сексуальных партнёров среди ваших друзей.
 Доступные команды:
 {0}
@@ -32,6 +28,7 @@ class FmfBotCommand():
     LIST = 3
     MATCHES = 4
     HELP = 5
+    ADD_BY_ID = 6
 
 
 def init_command_parser():
@@ -60,6 +57,22 @@ def init_command_parser():
         FmfBotCommand.HELP,
         ['h', 'help', 'start'],
         'Выводит это сообщение')
+    command_parser.registerCommand(
+        FmfBotCommand.ADD_BY_ID,
+        ['add_by_id'],
+        'Добавить в список симпатичных вам людей или нескольких человек по идентификатору',
+        nargs='*',
+        arg_name='id')
+
+
+def generate_user_name(nick=None, id=None, name=None):
+    if nick is not None:
+        return nick if nick.startswith('@') else '@' + nick
+    if name is not None:
+        return name
+    if id is not None:
+        return 'id:' + str(id)
+    return 'неизвестный утконос'
 
 
 def member_in_db(connection, member_id):
@@ -68,36 +81,36 @@ def member_in_db(connection, member_id):
     return cur.fetchone()[0] > 0
 
 
-def add_member(connection, member_id, member_name, chat_id):
+def add_member(connection, member_id, member_name, chat_id, full_name):
     cur = connection.cursor()
-    cur.execute('INSERT INTO members (id, name, chat) VALUES (?, ?, ?)',
-                (member_id, member_name, chat_id))
+    cur.execute('INSERT INTO members (id, name, chat, full_name) VALUES (?, ?, ?, ?)',
+                (member_id, member_name, chat_id, full_name))
     connection.commit()
 
 
-def member_changed_name(connection, member_id, member_name):
+def member_changed_name(connection, member_id, member_name, full_name):
     cur = connection.cursor()
-    cur.execute('SELECT COUNT(*) FROM members WHERE id=? AND name=?',
-                (member_id, member_name))
+    cur.execute('SELECT COUNT(*) FROM members WHERE id=? AND name=? AND full_name=?',
+                (member_id, member_name, full_name))
     return cur.fetchone()[0] == 0
 
 
-def update_name(connection, member_id, member_name):
+def update_name(connection, member_id, member_name, full_name):
     cur = connection.cursor()
-    cur.execute('UPDATE members SET name=? WHERE id=?',
-                (member_name, member_id))
+    cur.execute('UPDATE members SET name=?, full_name=? WHERE id=?',
+                (member_name, full_name, member_id))
     connection.commit()
 
 
 def member_likes(connection, member_id):
     cur = connection.cursor()
-    cur.execute('SELECT match_name FROM matches WHERE member_id=?',
+    cur.execute('SELECT match_name, match_id FROM matches WHERE member_id=?',
                 (member_id,))
-    return [c[0] for c in cur.fetchall()]
+    return [{'nick': c[0], 'id': c[1]} for c in cur.fetchall()]
 
 
 def likes_message(connection, member_id):
-    likes = [l.encode('utf8') for l in member_likes(connection, member_id)]
+    likes = [generate_user_name(nick=l['nick'], id=l['id']).encode('utf8') for l in member_likes(connection, member_id)]
     if not likes:
         return 'Вы пока никого не добавили в список.'
     return 'Ваш список: {}'.format(', '.join(sorted(likes)))
@@ -108,24 +121,32 @@ def invalid_nicks_message(invalid_nicks):
         ', '.join([n.encode('utf8') for n in invalid_nicks]))
 
 
+def invalid_ids_message(invalid_ids):
+    return 'Это - не идентификаторы пользователей! Повнимательнее :)\n{}'.format(
+        ', '.join([n.encode('utf8') for n in invalid_ids]))
+
+
 def member_matches(connection, member_id):
     cur = connection.cursor()
     cur.execute('''
-        SELECT m1.match_name FROM matches as m1
-        JOIN members as mem1 on m1.member_id = mem1.id
-        JOIN matches as m2 ON mem1.name = m2.match_name
-        JOIN members as mem2 on m2.member_id = mem2.id
-        WHERE m1.member_id=? AND m1.match_name = mem2.name''',
+        SELECT m1.match_name, m1.match_id FROM matches AS m1
+        JOIN members as mem1 ON m1.member_id = mem1.id
+        JOIN matches as m2 ON (mem1.name = m2.match_name OR mem1.id = m2.match_id)
+        JOIN members as mem2 ON m2.member_id = mem2.id
+        WHERE m1.member_id=? AND (m1.match_name = mem2.name OR m1.match_id = mem2.id)''',
                 (member_id,))
+    return [{'nick': c[0], 'id': c[1]} for c in cur.fetchall()]
+
+
+def get_ids_by_nicks(connection, nicks):
+    cur = connection.cursor()
+    sql = 'SELECT id FROM members WHERE name IN ({})'.format(', '.join(['?']*len(nicks)))
+    cur.execute(sql, nicks)
     return [c[0] for c in cur.fetchall()]
 
 
-def is_match(connection, member_id, name):
-    return name in member_matches(connection, member_id)
-
-
 def matches_message(connection, member_id):
-    matches = [m.encode('utf8') for m in member_matches(connection, member_id)]
+    matches = [generate_user_name(nick=m['nick'], id=m['id']).encode('utf8') for m in member_matches(connection, member_id)]
     if matches:
         return 'У вас взаимный интерес с этими людьми: {}'.format(
             ', '.join(sorted(matches)))
@@ -133,10 +154,10 @@ def matches_message(connection, member_id):
         return 'Пока у вас нет взаимного интереса ни с кем, но не сдавайтесь!'
 
 
-def add_match(connection, member_id, match_name):
+def add_match(connection, member_id, match_name=None, match_id=None):
     cur = connection.cursor()
-    cur.execute('INSERT INTO matches (member_id, match_name) VALUES (?, ?)',
-                (member_id, match_name))
+    cur.execute('INSERT INTO matches (member_id, match_name, match_id) VALUES (?, ?, ?)',
+                (member_id, match_name, match_id))
     connection.commit()
 
 
@@ -147,24 +168,25 @@ def remove_match(connection, member_id, match_name):
     connection.commit()
 
 
-def congratulations_messages(connection, member_id, match):
+def congratulations_messages(connection, member_id, match_id):
     cur = connection.cursor()
     cur.execute('SELECT name, chat FROM members WHERE id=?',
                 (member_id,))
-    name, chat_id = cur.fetchone()
-    bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(match.encode('utf8')))
-    cur.execute('SELECT chat FROM members WHERE name=?',
-                (match,))
-    chat_id = cur.fetchone()[0]
-    bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(name.encode('utf8')))
+    nick_1, chat_id_1 = cur.fetchone()
+    cur.execute('SELECT name, chat FROM members WHERE id=?',
+                (match_id,))
+    nick_2, chat_id_2 = cur.fetchone()
+    bot.sendMessage(chat_id_1, 'У вас совпадение с {}. Удачи!'.format(
+        generate_user_name(nick=nick_1, id=member_id).encode('utf8')))
+    bot.sendMessage(chat_id_2, 'У вас совпадение с {}. Удачи!'.format(
+        generate_user_name(nick=nick_2, id=match_id).encode('utf8')))
 
 
 def check_new_matches(connection, member_id, new_matches):
-    matches = member_matches(connection, member_id)
-    new_matches = ['@' + n for n in new_matches if not n.startswith('@')]
-    for match in new_matches:
-        if match in matches:
-            congratulations_messages(connection, member_id, match)
+    matches = [m['id'] for m in member_matches(connection, member_id)]
+    for match_id in new_matches:
+        if match_id in matches:
+            congratulations_messages(connection, member_id, match_id)
 
 
 def show_help(chat_id):
@@ -183,10 +205,26 @@ def handle_add_command(params, connection, member_id, chat_id):
         if not match_name.startswith('@'):
             match_name = '@' + match_name
         add_match(connection, member_id, match_name)
-    check_new_matches(connection, member_id, params)
+    new_ids = get_ids_by_nicks(connection, params)
+    check_new_matches(connection, member_id, new_ids)
     msg = likes_message(connection, member_id)
     if invalid_nicks:
         msg = '\n'.join([msg, invalid_nicks_message(invalid_nicks)])
+    bot.sendMessage(chat_id, msg)
+
+
+def handle_add_by_id_command(params, connection, member_id, chat_id):
+    valid_id_pattern = re.compile('^\d+$')
+    invalid_ids = []
+    for match_id in params:
+        if not valid_id_pattern.match(match_id):
+            invalid_ids.append(match_id)
+            continue
+        add_match(connection, member_id, match_id=match_id)
+    check_new_matches(connection, member_id, params)
+    msg = likes_message(connection, member_id)
+    if invalid_ids:
+        msg = '\n'.join([msg, invalid_ids_message(invalid_ids)])
     bot.sendMessage(chat_id, msg)
 
 
@@ -203,6 +241,8 @@ def handle_command(command, connection, member_id, chat_id):
         show_help(chat_id)
     elif command.id == FmfBotCommand.ADD:
         handle_add_command(command.params, connection, member_id, chat_id)
+    elif command.id == FmfBotCommand.ADD_BY_ID:
+        handle_add_by_id_command(command.params, connection, member_id, chat_id)
     elif command.id == FmfBotCommand.REMOVE:
         handle_remove_command(command.params, connection, member_id, chat_id)
     elif command.id == FmfBotCommand.LIST:
@@ -213,22 +253,30 @@ def handle_command(command, connection, member_id, chat_id):
         bot.sendMessage(chat_id, 'Команда ещё не реализована, потерпите немного.')
         show_help(chat_id)
 
+
+def generate_command_by_contact(contact):
+    return '/add_by_id {}'.format(contact['user_id'])
+
+
+def generate_full_name(data):
+    name_parts = [data[key] for key in ('first_name', 'last_name') if key in data]
+    return ' '.join(name_parts)
+
+
 def handle(msg):
     chat_id = msg['chat']['id']
-    try:
-        member_name = '@' + msg['from']['username']
-    except KeyError:
-        bot.sendMessage(chat_id, NO_NICKNAME_MSG)
-        return
-    command = command_parser.parse(msg['text'])
+    member_nick = '@' + msg['from']['username'] if 'username' in msg['from'] else None
+    text = msg['text'] if 'text' in msg else generate_command_by_contact(msg['contact'])
+    member_full_name = generate_full_name(msg['from'])
+    command = command_parser.parse(text)
     member_id = msg['from']['id']
     db_path = os.path.join(WORKDIR, 'fmf.db')
     connection = sqlite3.connect(db_path)
 
     if not member_in_db(connection, member_id):
-        add_member(connection, member_id, member_name, chat_id)
-    elif member_changed_name(connection, member_id, member_name):
-        update_name(connection, member_id, member_name)
+        add_member(connection, member_id, member_nick, chat_id, member_full_name)
+    elif member_changed_name(connection, member_id, member_nick, member_full_name):
+        update_name(connection, member_id, member_nick, member_full_name)
     handle_command(command, connection, member_id, chat_id)
 
 
