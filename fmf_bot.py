@@ -9,7 +9,7 @@ import telepot
 from telepot.loop import MessageLoop
 from command_parser import CommandParser
 
-OWN_NAME = 'fmf_robot'
+OWN_NAME = re.compile('@?fmf_robot')
 
 NO_NICKNAME_MSG = '''К сожалению, этот бот может работать только с людьми, у которых заполнен никнейм в профиле. 🙁
 Заполни его и приходи еще раз!
@@ -172,7 +172,7 @@ def show_help(chat_id):
 
 
 def handle_add_command(params, connection, member_id, chat_id):
-    if OWN_NAME in params:
+    if any((OWN_NAME.match(p) for p in params)):
         bot.sendMessage(chat_id, 'Это так неожиданно! 😘')
     valid_nick_pattern = re.compile('^\@?[A-Za-z]\w{4}\w*$')
     invalid_nicks = []
