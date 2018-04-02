@@ -161,7 +161,7 @@ def congratulations_messages(connection, member_id, match):
 
 def check_new_matches(connection, member_id, new_matches):
     matches = member_matches(connection, member_id)
-    new_matches = ['@' + n for n in new_matches if not n.startswith('@')]
+    new_matches = ['@' + n if not n.startswith('@') else n for n in new_matches]
     for match in new_matches:
         if match in matches:
             congratulations_messages(connection, member_id, match)
