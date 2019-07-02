@@ -100,7 +100,8 @@ def likes_message(connection, member_id):
     likes = [l.encode('utf8') for l in member_likes(connection, member_id)]
     if not likes:
         return 'Вы пока никого не добавили в список.'
-    return 'Ваш список: {}'.format(', '.join(sorted(likes)))
+    return 'Ваш список: {}'.format(
+        ', '.join(sorted(likes, key=lambda x: x.lower())))
 
 
 def invalid_nicks_message(invalid_nicks):
@@ -128,7 +129,7 @@ def matches_message(connection, member_id):
     matches = [m.encode('utf8') for m in member_matches(connection, member_id)]
     if matches:
         return 'У вас взаимный интерес с этими людьми: {}'.format(
-            ', '.join(sorted(matches)))
+            ', '.join(sorted(matches, key=lambda x: x.lower())))
     else:
         return 'Пока у вас нет взаимного интереса ни с кем, но не сдавайтесь!'
 
