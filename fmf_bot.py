@@ -136,6 +136,8 @@ def matches_message(connection, member_id):
 
 def add_match(connection, member_id, match_name):
     cur = connection.cursor()
+    cur.execute('DELETE FROM matches WHERE member_id=? AND LOWER(match_name)=?',
+                (member_id, match_name.lower()))
     cur.execute('INSERT INTO matches (member_id, match_name) VALUES (?, ?)',
                 (member_id, match_name))
     connection.commit()
@@ -143,8 +145,8 @@ def add_match(connection, member_id, match_name):
 
 def remove_match(connection, member_id, match_name):
     cur = connection.cursor()
-    cur.execute('DELETE FROM matches WHERE member_id=? AND match_name=?',
-                (member_id, match_name))
+    cur.execute('DELETE FROM matches WHERE member_id=? AND LOWER(match_name)=?',
+                (member_id, match_name.lower()))
     connection.commit()
 
 
