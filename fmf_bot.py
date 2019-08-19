@@ -112,7 +112,7 @@ def invalid_nicks_message(invalid_nicks):
 def member_matches(connection, member_id):
     cur = connection.cursor()
     cur.execute('''
-        SELECT m1.match_name FROM matches as m1
+        SELECT DISTINCT(m1.match_name) FROM matches as m1
         JOIN members as mem1 on m1.member_id = mem1.id
         JOIN matches as m2 ON LOWER(mem1.name) = LOWER(m2.match_name)
         JOIN members as mem2 on m2.member_id = mem2.id
