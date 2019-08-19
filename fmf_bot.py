@@ -114,9 +114,9 @@ def member_matches(connection, member_id):
     cur.execute('''
         SELECT m1.match_name FROM matches as m1
         JOIN members as mem1 on m1.member_id = mem1.id
-        JOIN matches as m2 ON mem1.name = m2.match_name
+        JOIN matches as m2 ON LOWER(mem1.name) = LOWER(m2.match_name)
         JOIN members as mem2 on m2.member_id = mem2.id
-        WHERE m1.member_id=? AND m1.match_name = mem2.name''',
+        WHERE m1.member_id=? AND LOWER(m1.match_name) = LOWER(mem2.name)''',
                 (member_id,))
     return [c[0] for c in cur.fetchall()]
 
@@ -156,7 +156,7 @@ def congratulations_messages(connection, member_id, match):
                 (member_id,))
     name, chat_id = cur.fetchone()
     bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(match.encode('utf8')))
-    cur.execute('SELECT chat FROM members WHERE name=?',
+    cur.execute('SELECT chat FROM members WHERE LOWER(name)=LOWER(?)',
                 (match,))
     chat_id = cur.fetchone()[0]
     bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(name.encode('utf8')))
