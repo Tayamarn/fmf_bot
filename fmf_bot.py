@@ -45,6 +45,7 @@ class FmfBotCommand():
     LIST = 3
     MATCHES = 4
     HELP = 5
+    RENAME = 6
 
 
 def init_command_parser():
@@ -73,6 +74,10 @@ def init_command_parser():
         FmfBotCommand.HELP,
         ['h', 'help', 'start'],
         'Выводит это сообщение')
+    command_parser.registerCommand(
+        FmfBotCommand.RENAME,
+        ['rename'],
+        'Если у вас изменился ник – обновляет его у всех, кому вы симпатичны.')
 
 
 def member_in_db(connection, member_id):
@@ -97,8 +102,10 @@ def member_changed_name(connection, member_id, member_name):
 
 def update_name(connection, member_id, member_name):
     cur = connection.cursor()
-    cur.execute('UPDATE members SET name=? WHERE id=?',
-                (member_name, member_id))
+    cur.execute('SELECT NAME FROM members WHERE id=?', (member_id,))
+    prev_name = cur.fetchone()[0]
+    cur.execute('UPDATE members SET name=?, previous_name=? WHERE id=?',
+                (member_name, prev_name, member_id))
     connection.commit()
 
 
@@ -214,6 +221,18 @@ def handle_remove_command(params, connection, member_id, chat_id):
     bot.sendMessage(chat_id, likes_message(connection, member_id))
 
 
+def handle_rename_command(params, connection, member_id, chat_id):
+    cur = connection.cursor()
+    cur.execute('SELECT name, previous_name FROM members WHERE id=?',
+                (member_id,))
+    name, previous_name = cur.fetchone()
+    if previous_name is not None:
+        cur.execute('UPDATE matches SET match_name=? WHERE match_name=?',
+                    (name, previous_name))
+        connection.commit()
+    bot.sendMessage(chat_id, 'OK')
+
+
 def handle_command(command, connection, member_id, chat_id):
     if not command or command.id == FmfBotCommand.HELP:
         show_help(chat_id)
@@ -225,6 +244,8 @@ def handle_command(command, connection, member_id, chat_id):
         bot.sendMessage(chat_id, likes_message(connection, member_id))
     elif command.id == FmfBotCommand.MATCHES:
         bot.sendMessage(chat_id, matches_message(connection, member_id))
+    elif command.id == FmfBotCommand.RENAME:
+        handle_rename_command(command.params, connection, member_id, chat_id)
     else:
         bot.sendMessage(chat_id, 'Команда ещё не реализована, потерпите немного.')
         show_help(chat_id)
