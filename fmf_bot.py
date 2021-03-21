@@ -297,9 +297,9 @@ async def send_welcome(message: types.Message):
     # await message.reply(HELP_MESSAGE.format(command_parser.getHelp()))
 
 
-@dp.message_handler()
+@dp.message_handler(commands=['echo'])
 async def echo(message: types.Message):
-    await message.answer(message.text)
+    await message.answer(f'Reply: {message.get_args()}')
 
 
 if __name__ == '__main__':
