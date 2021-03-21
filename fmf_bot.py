@@ -55,48 +55,48 @@ bot = Bot(token=read_token())
 dp = Dispatcher(bot)
 
 
-# command_parser = CommandParser()
+command_parser = CommandParser()
 
 
-# class FmfBotCommand():
-#     ADD = 1
-#     REMOVE = 2
-#     LIST = 3
-#     MATCHES = 4
-#     HELP = 5
-#     RENAME = 6
+class FmfBotCommand():
+    ADD = 1
+    REMOVE = 2
+    LIST = 3
+    MATCHES = 4
+    HELP = 5
+    RENAME = 6
 
 
-# def init_command_parser():
-#     global command_parser
-#     command_parser.registerCommand(
-#         FmfBotCommand.ADD,
-#         ['a', 'add', 'like'],
-#         'Добавить в список симпатичных вам людей одного или нескольких человек',
-#         nargs='*',
-#         arg_name='name')
-#     command_parser.registerCommand(
-#         FmfBotCommand.REMOVE,
-#         ['rm', 'remove'],
-#         'Удалить из списка симпатичных вам людей одного или нескольких человек',
-#         nargs='*',
-#         arg_name='name')
-#     command_parser.registerCommand(
-#         FmfBotCommand.LIST,
-#         ['l', 'list'],
-#         'Показать список симпатичных вам людей')
-#     command_parser.registerCommand(
-#         FmfBotCommand.MATCHES,
-#         ['m', 'matches'],
-#         'Показать список людей, с которыми у вас появилась взаимность')
-#     command_parser.registerCommand(
-#         FmfBotCommand.HELP,
-#         ['h', 'help', 'start'],
-#         'Выводит это сообщение')
-#     command_parser.registerCommand(
-#         FmfBotCommand.RENAME,
-#         ['rename'],
-#         'Если у вас изменился ник – обновляет его у всех, кому вы симпатичны.')
+def init_command_parser():
+    global command_parser
+    command_parser.registerCommand(
+        FmfBotCommand.ADD,
+        ['a', 'add', 'like'],
+        'Добавить в список симпатичных вам людей одного или нескольких человек',
+        nargs='*',
+        arg_name='name')
+    command_parser.registerCommand(
+        FmfBotCommand.REMOVE,
+        ['rm', 'remove'],
+        'Удалить из списка симпатичных вам людей одного или нескольких человек',
+        nargs='*',
+        arg_name='name')
+    command_parser.registerCommand(
+        FmfBotCommand.LIST,
+        ['l', 'list'],
+        'Показать список симпатичных вам людей')
+    command_parser.registerCommand(
+        FmfBotCommand.MATCHES,
+        ['m', 'matches'],
+        'Показать список людей, с которыми у вас появилась взаимность')
+    command_parser.registerCommand(
+        FmfBotCommand.HELP,
+        ['h', 'help', 'start'],
+        'Выводит это сообщение')
+    command_parser.registerCommand(
+        FmfBotCommand.RENAME,
+        ['rename'],
+        'Если у вас изменился ник – обновляет его у всех, кому вы симпатичны.')
 
 
 # def member_in_db(connection, member_id):
@@ -293,8 +293,7 @@ async def send_welcome(message: types.Message):
     """
     This handler will be called when user sends `/start` or `/help` command
     """
-    await message.reply(HELP_MESSAGE.format('placeholder'))
-    # await message.reply(HELP_MESSAGE.format(command_parser.getHelp()))
+    await message.reply(HELP_MESSAGE.format(command_parser.getHelp()))
 
 
 @dp.message_handler(commands=['echo'])
@@ -303,8 +302,8 @@ async def echo(message: types.Message):
 
 
 if __name__ == '__main__':
+    init_command_parser()
     executor.start_polling(dp)
-    # init_command_parser()
 
     # MessageLoop(bot, handle).run_as_thread()
     # while 1:
