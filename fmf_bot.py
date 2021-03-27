@@ -58,6 +58,16 @@ dp = Dispatcher(bot)
 command_parser = CommandParser()
 
 
+# @dp.message_handler(commands=['start', 'help'])
+async def send_welcome(message: types.Message):
+    await message.reply(HELP_MESSAGE.format(command_parser.getHelp()))
+
+
+async def unknown_command(message: types.Message):
+    await message.reply('Команда ещё не реализована, потерпите немного.')
+    await message.reply(HELP_MESSAGE.format(command_parser.getHelp()))
+
+
 class FmfBotCommand():
     ADD = 1
     REMOVE = 2
@@ -93,10 +103,12 @@ def init_command_parser():
         FmfBotCommand.HELP,
         ['h', 'help', 'start'],
         'Выводит это сообщение')
+    dp.register_message_handler(send_welcome, commands=['h', 'help', 'start'])
     command_parser.registerCommand(
         FmfBotCommand.RENAME,
         ['rename'],
         'Если у вас изменился ник – обновляет его у всех, кому вы симпатичны.')
+    dp.register_message_handler(unknown_command)
 
 
 # def member_in_db(connection, member_id):
@@ -286,19 +298,6 @@ def init_command_parser():
 #     elif member_changed_name(connection, member_id, member_name):
 #         update_name(connection, member_id, member_name)
 #     handle_command(command, connection, member_id, chat_id)
-
-
-@dp.message_handler(commands=['start', 'help'])
-async def send_welcome(message: types.Message):
-    """
-    This handler will be called when user sends `/start` or `/help` command
-    """
-    await message.reply(HELP_MESSAGE.format(command_parser.getHelp()))
-
-
-@dp.message_handler(commands=['echo'])
-async def echo(message: types.Message):
-    await message.answer(f'Reply: {message.get_args()}')
 
 
 if __name__ == '__main__':
