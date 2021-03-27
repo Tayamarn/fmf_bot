@@ -72,7 +72,7 @@ def member_in_db(connection, member_id):
 
 async def add_member(message: types.Message):
     try:
-        await message.reply(message.from_user.id)
+        await message.reply(message.from_user.username)
     except:
         import traceback
         await message.reply(traceback.format_exc())
