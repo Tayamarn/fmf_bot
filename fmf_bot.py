@@ -64,6 +64,20 @@ def member_in_db(connection, member_id):
     return cur.fetchone()[0] > 0
 
 
+# def add_member(connection, member_id, member_name, chat_id):
+#     cur = connection.cursor()
+#     cur.execute('INSERT INTO members (id, name, chat) VALUES (?, ?, ?)',
+#                 (member_id, member_name, chat_id))
+#     connection.commit()
+
+async def add_member(message: types.Message):
+    try:
+        await message.reply(message.from_user.id)
+    except:
+        import traceback
+        await message.reply(traceback.format_exc())
+
+
 async def send_welcome(message: types.Message):
     await message.reply(HELP_MESSAGE.format(command_parser.getHelp()))
 
@@ -84,12 +98,13 @@ class FmfBotCommand():
 
 def init_command_parser():
     global command_parser
-    # command_parser.registerCommand(
-    #     FmfBotCommand.ADD,
-    #     ['a', 'add', 'like'],
-    #     'Добавить в список симпатичных вам людей одного или нескольких человек',
-    #     nargs='*',
-    #     arg_name='name')
+    command_parser.registerCommand(
+        FmfBotCommand.ADD,
+        add_member,
+        ['a', 'add', 'like'],
+        'Добавить в список симпатичных вам людей одного или нескольких человек',
+        nargs='*',
+        arg_name='name')
     # command_parser.registerCommand(
     #     FmfBotCommand.REMOVE,
     #     ['rm', 'remove'],
@@ -114,13 +129,6 @@ def init_command_parser():
     #     ['rename'],
     #     'Если у вас изменился ник – обновляет его у всех, кому вы симпатичны.')
     dp.register_message_handler(unknown_command)
-
-
-# def add_member(connection, member_id, member_name, chat_id):
-#     cur = connection.cursor()
-#     cur.execute('INSERT INTO members (id, name, chat) VALUES (?, ?, ?)',
-#                 (member_id, member_name, chat_id))
-#     connection.commit()
 
 
 # def member_changed_name(connection, member_id, member_name):
