@@ -58,7 +58,12 @@ dp = Dispatcher(bot)
 command_parser = CommandParser(dp)
 
 
-# @dp.message_handler(commands=['start', 'help'])
+def member_in_db(connection, member_id):
+    cur = connection.cursor()
+    cur.execute('SELECT COUNT(*) FROM members WHERE id=?', (member_id,))
+    return cur.fetchone()[0] > 0
+
+
 async def send_welcome(message: types.Message):
     await message.reply(HELP_MESSAGE.format(command_parser.getHelp()))
 
@@ -104,18 +109,11 @@ def init_command_parser():
         send_welcome,
         ['h', 'help', 'start'],
         'Выводит это сообщение')
-    # dp.register_message_handler(send_welcome, commands=['h', 'help', 'start'])
     # command_parser.registerCommand(
     #     FmfBotCommand.RENAME,
     #     ['rename'],
     #     'Если у вас изменился ник – обновляет его у всех, кому вы симпатичны.')
     dp.register_message_handler(unknown_command)
-
-
-# def member_in_db(connection, member_id):
-#     cur = connection.cursor()
-#     cur.execute('SELECT COUNT(*) FROM members WHERE id=?', (member_id,))
-#     return cur.fetchone()[0] > 0
 
 
 # def add_member(connection, member_id, member_name, chat_id):
@@ -304,7 +302,3 @@ def init_command_parser():
 if __name__ == '__main__':
     init_command_parser()
     executor.start_polling(dp)
-
-    # MessageLoop(bot, handle).run_as_thread()
-    # while 1:
-    #     time.sleep(10)
