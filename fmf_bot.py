@@ -55,7 +55,7 @@ bot = Bot(token=read_token())
 dp = Dispatcher(bot)
 
 
-command_parser = CommandParser()
+command_parser = CommandParser(dp)
 
 
 # @dp.message_handler(commands=['start', 'help'])
@@ -79,35 +79,36 @@ class FmfBotCommand():
 
 def init_command_parser():
     global command_parser
-    command_parser.registerCommand(
-        FmfBotCommand.ADD,
-        ['a', 'add', 'like'],
-        'Добавить в список симпатичных вам людей одного или нескольких человек',
-        nargs='*',
-        arg_name='name')
-    command_parser.registerCommand(
-        FmfBotCommand.REMOVE,
-        ['rm', 'remove'],
-        'Удалить из списка симпатичных вам людей одного или нескольких человек',
-        nargs='*',
-        arg_name='name')
-    command_parser.registerCommand(
-        FmfBotCommand.LIST,
-        ['l', 'list'],
-        'Показать список симпатичных вам людей')
-    command_parser.registerCommand(
-        FmfBotCommand.MATCHES,
-        ['m', 'matches'],
-        'Показать список людей, с которыми у вас появилась взаимность')
+    # command_parser.registerCommand(
+    #     FmfBotCommand.ADD,
+    #     ['a', 'add', 'like'],
+    #     'Добавить в список симпатичных вам людей одного или нескольких человек',
+    #     nargs='*',
+    #     arg_name='name')
+    # command_parser.registerCommand(
+    #     FmfBotCommand.REMOVE,
+    #     ['rm', 'remove'],
+    #     'Удалить из списка симпатичных вам людей одного или нескольких человек',
+    #     nargs='*',
+    #     arg_name='name')
+    # command_parser.registerCommand(
+    #     FmfBotCommand.LIST,
+    #     ['l', 'list'],
+    #     'Показать список симпатичных вам людей')
+    # command_parser.registerCommand(
+    #     FmfBotCommand.MATCHES,
+    #     ['m', 'matches'],
+    #     'Показать список людей, с которыми у вас появилась взаимность')
     command_parser.registerCommand(
         FmfBotCommand.HELP,
+        send_welcome,
         ['h', 'help', 'start'],
         'Выводит это сообщение')
-    dp.register_message_handler(send_welcome, commands=['h', 'help', 'start'])
-    command_parser.registerCommand(
-        FmfBotCommand.RENAME,
-        ['rename'],
-        'Если у вас изменился ник – обновляет его у всех, кому вы симпатичны.')
+    # dp.register_message_handler(send_welcome, commands=['h', 'help', 'start'])
+    # command_parser.registerCommand(
+    #     FmfBotCommand.RENAME,
+    #     ['rename'],
+    #     'Если у вас изменился ник – обновляет его у всех, кому вы симпатичны.')
     dp.register_message_handler(unknown_command)
 
 
