@@ -65,14 +65,12 @@ def member_in_db(connection, member_id):
     return cur.fetchone()[0] > 0
 
 
-def handle_nickname(func):
-    async def wrapped(message):
-        try:
-            member_name = '@' + message.from_user.username
-        except MessageTextIsEmpty:
-            await message.reply(NO_NICKNAME_MSG)
-            return
-        await func(message)
+def handle_nickname(message):
+    try:
+        member_name = '@' + message.from_user.username
+    except MessageTextIsEmpty:
+        await message.reply(NO_NICKNAME_MSG)
+        return
     # member_id = message.from_user.id
     # db_path = os.path.join(WORKDIR, 'fmf.db')
     # connection = sqlite3.connect(db_path)
@@ -90,8 +88,11 @@ def handle_nickname(func):
 #                 (member_id, member_name, chat_id))
 #     connection.commit()
 
-@handle_nickname
+
 async def add_member(message: types.Message):
+    nickname = handle_nickname(message)
+    if nickname is None:
+        return
     await message.reply('Add command')
 
 
