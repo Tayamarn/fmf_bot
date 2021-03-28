@@ -72,6 +72,7 @@ class CommandParser():
 
         Keyword arguments:
         id -- Unique external identifier of the command.
+        method - Method to run when the command is executed.
         name -- Name of the command or list of possible names.
         help -- Human-readable description of the command.
         nargs -- Argument counter (for help only). Can be '1', '?', '*'. Optional.

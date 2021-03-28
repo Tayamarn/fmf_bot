@@ -65,38 +65,78 @@ def member_in_db(connection, member_id):
     return cur.fetchone()[0] > 0
 
 
+def add_member(connection, member_id, member_name, chat_id):
+    cur = connection.cursor()
+    # member_id and chat_id are the same, so it's just a historical issue.
+    cur.execute('INSERT INTO members (id, name, chat) VALUES (?, ?, ?)',
+                (member_id, member_name, chat_id))
+    connection.commit()
+
+
+def member_changed_name(connection, member_id, member_name):
+    cur = connection.cursor()
+    cur.execute('SELECT COUNT(*) FROM members WHERE id=? AND name=?',
+                (member_id, member_name))
+    return cur.fetchone()[0] == 0
+
+
+def update_name(connection, member_id, member_name):
+    cur = connection.cursor()
+    cur.execute('SELECT NAME FROM members WHERE id=?', (member_id,))
+    prev_name = cur.fetchone()[0]
+    cur.execute('UPDATE members SET name=?, previous_name=? WHERE id=?',
+                (member_name, prev_name, member_id))
+    connection.commit()
+
+
+def get_db():
+    db_path = os.path.join(WORKDIR, 'fmf.db')
+    connection = sqlite3.connect(db_path)
+    return connection
+
+
 async def handle_nickname(message):
     if message.from_user.username is None:
         await message.reply(NO_NICKNAME_MSG)
         return
     member_name = '@' + message.from_user.username
+    member_id = message.from_user.id
+    connection = get_db()
+    if not member_in_db(connection, member_id):
+        add_member(connection, member_id, member_name, member_id)
+    elif member_changed_name(connection, member_id, member_name):
+        update_name(connection, member_id, member_name)
     return member_name
-    # member_id = message.from_user.id
-    # db_path = os.path.join(WORKDIR, 'fmf.db')
-    # connection = sqlite3.connect(db_path)
-
-#     if not member_in_db(connection, member_id):
-#         add_member(connection, member_id, member_name, chat_id)
-#     elif member_changed_name(connection, member_id, member_name):
-#         update_name(connection, member_id, member_name)
-#     handle_command(command, connection, member_id, chat_id)
-
-
-# def add_member(connection, member_id, member_name, chat_id):
-#     cur = connection.cursor()
-#     cur.execute('INSERT INTO members (id, name, chat) VALUES (?, ?, ?)',
-#                 (member_id, member_name, chat_id))
-#     connection.commit()
 
 
 async def add_member(message: types.Message):
     nickname = await handle_nickname(message)
     if nickname is None:
         return
-    await message.reply('Add command')
+    params = message.get_args()
+    await message.reply(f'Add command with params {params}, type {type(params)}')
 
 
-async def send_welcome(message: types.Message):
+# def handle_add_command(params, connection, member_id, chat_id):
+#     if any((OWN_NAME.match(p) for p in params)):
+#         bot.sendMessage(chat_id, 'Это так неожиданно! 😘')
+#     valid_nick_pattern = re.compile('^\@?[A-Za-z]\w{4}\w*$')
+#     invalid_nicks = []
+#     for match_name in params:
+#         if not valid_nick_pattern.match(match_name):
+#             invalid_nicks.append(match_name)
+#             continue
+#         if not match_name.startswith('@'):
+#             match_name = '@' + match_name
+#         add_match(connection, member_id, match_name)
+#     check_new_matches(connection, member_id, params)
+#     msg = likes_message(connection, member_id)
+#     if invalid_nicks:
+#         msg = '\n'.join([msg, invalid_nicks_message(invalid_nicks)])
+#     bot.sendMessage(chat_id, msg)
+
+
+async def help_message(message: types.Message):
     await message.reply(HELP_MESSAGE.format(command_parser.getHelp()))
 
 
@@ -139,7 +179,7 @@ def init_command_parser():
     #     'Показать список людей, с которыми у вас появилась взаимность')
     command_parser.registerCommand(
         FmfBotCommand.HELP,
-        send_welcome,
+        help_message,
         ['h', 'help', 'start'],
         'Выводит это сообщение')
     # command_parser.registerCommand(
@@ -147,22 +187,6 @@ def init_command_parser():
     #     ['rename'],
     #     'Если у вас изменился ник – обновляет его у всех, кому вы симпатичны.')
     dp.register_message_handler(unknown_command)
-
-
-# def member_changed_name(connection, member_id, member_name):
-#     cur = connection.cursor()
-#     cur.execute('SELECT COUNT(*) FROM members WHERE id=? AND name=?',
-#                 (member_id, member_name))
-#     return cur.fetchone()[0] == 0
-
-
-# def update_name(connection, member_id, member_name):
-#     cur = connection.cursor()
-#     cur.execute('SELECT NAME FROM members WHERE id=?', (member_id,))
-#     prev_name = cur.fetchone()[0]
-#     cur.execute('UPDATE members SET name=?, previous_name=? WHERE id=?',
-#                 (member_name, prev_name, member_id))
-#     connection.commit()
 
 
 # def member_likes(connection, member_id):
@@ -244,29 +268,6 @@ def init_command_parser():
 #     for match in new_matches:
 #         if match in matches:
 #             congratulations_messages(connection, member_id, match)
-
-
-# def show_help(chat_id):
-#     bot.sendMessage(chat_id, HELP_MESSAGE.format(command_parser.getHelp()))
-
-
-# def handle_add_command(params, connection, member_id, chat_id):
-#     if any((OWN_NAME.match(p) for p in params)):
-#         bot.sendMessage(chat_id, 'Это так неожиданно! 😘')
-#     valid_nick_pattern = re.compile('^\@?[A-Za-z]\w{4}\w*$')
-#     invalid_nicks = []
-#     for match_name in params:
-#         if not valid_nick_pattern.match(match_name):
-#             invalid_nicks.append(match_name)
-#             continue
-#         if not match_name.startswith('@'):
-#             match_name = '@' + match_name
-#         add_match(connection, member_id, match_name)
-#     check_new_matches(connection, member_id, params)
-#     msg = likes_message(connection, member_id)
-#     if invalid_nicks:
-#         msg = '\n'.join([msg, invalid_nicks_message(invalid_nicks)])
-#     bot.sendMessage(chat_id, msg)
 
 
 # def handle_remove_command(params, connection, member_id, chat_id):
