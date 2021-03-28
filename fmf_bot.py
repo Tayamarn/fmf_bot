@@ -65,7 +65,7 @@ def member_in_db(connection, member_id):
     return cur.fetchone()[0] > 0
 
 
-def add_member(connection, member_id, member_name, chat_id):
+def add_member_to_db(connection, member_id, member_name, chat_id):
     cur = connection.cursor()
     # member_id and chat_id are the same, so it's just a historical issue.
     cur.execute('INSERT INTO members (id, name, chat) VALUES (?, ?, ?)',
@@ -103,13 +103,13 @@ async def handle_nickname(message):
     member_id = message.from_user.id
     connection = get_db()
     if not member_in_db(connection, member_id):
-        add_member(connection, member_id, member_name, member_id)
+        add_member_to_db(connection, member_id, member_name, member_id)
     elif member_changed_name(connection, member_id, member_name):
         update_name(connection, member_id, member_name)
     return member_name
 
 
-async def add_member(message: types.Message):
+async def add_command(message: types.Message):
     nickname = await handle_nickname(message)
     if nickname is None:
         return
@@ -158,7 +158,7 @@ def init_command_parser():
     global command_parser
     command_parser.registerCommand(
         FmfBotCommand.ADD,
-        add_member,
+        add_command,
         ['a', 'add', 'like'],
         'Добавить в список симпатичных вам людей одного или нескольких человек',
         nargs='*',
