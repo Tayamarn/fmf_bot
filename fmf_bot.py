@@ -186,7 +186,7 @@ async def add_command(message: types.Message):
         member_name, member_id = await handle_nickname(message)
     except NoNickname:
         return
-    params = message.get_args().split()
+    params = [p.decode('utf-8') for p in message.get_args().split()]
     if any((OWN_NAME.match(p) for p in params)):
         bot.sendMessage(chat_id, 'Это так неожиданно! 😘')
     valid_nick_pattern = re.compile(r'^\@?[A-Za-z]\w{4}\w*$')
