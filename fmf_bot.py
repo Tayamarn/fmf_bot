@@ -117,16 +117,14 @@ def member_likes(connection, member_id):
 
 
 def likes_message(connection, member_id):
-    likes = [l.encode('utf8') for l in member_likes(connection, member_id)]
+    likes = member_likes(connection, member_id)
     if not likes:
         return 'Вы пока никого не добавили в список.'
-    return 'Ваш список: {}'.format(
-        ', '.join(sorted(likes, key=lambda x: x.lower())))
+    return 'Ваш список: {}'.format(', '.join(sorted(likes, key=lambda x: x.lower())))
 
 
 def invalid_nicks_message(invalid_nicks):
-    return 'Это - не имена пользователей! Повнимательнее :)\n{}'.format(
-        ', '.join([n.encode('utf8') for n in invalid_nicks]))
+    return 'Это - не имена пользователей! Повнимательнее :)\n{}'.format(', '.join(invalid_nicks))
 
 
 def member_matches(connection, member_id):
@@ -146,7 +144,7 @@ def is_match(connection, member_id, name):
 
 
 def matches_message(connection, member_id):
-    matches = [m.encode('utf8') for m in member_matches(connection, member_id)]
+    matches = member_matches(connection, member_id)
     if matches:
         return 'У вас взаимный интерес с этими людьми: {}'.format(
             ', '.join(sorted(matches, key=lambda x: x.lower())))
@@ -186,7 +184,7 @@ async def add_command(message: types.Message):
         member_name, member_id = await handle_nickname(message)
     except NoNickname:
         return
-    params = [p.decode('utf-8') for p in message.get_args().split()]
+    params = message.get_args().split()
     if any((OWN_NAME.match(p) for p in params)):
         bot.sendMessage(chat_id, 'Это так неожиданно! 😘')
     valid_nick_pattern = re.compile(r'^\@?[A-Za-z]\w{4}\w*$')
@@ -283,11 +281,11 @@ def init_command_parser():
 #     cur.execute('SELECT name, chat FROM members WHERE id=?',
 #                 (member_id,))
 #     name, chat_id = cur.fetchone()
-#     bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(match.encode('utf8')))
+#     bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(match))
 #     cur.execute('SELECT chat FROM members WHERE LOWER(name)=LOWER(?)',
 #                 (match,))
 #     chat_id = cur.fetchone()[0]
-#     bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(name.encode('utf8')))
+#     bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(name))
 
 
 # def handle_remove_command(params, connection, member_id, chat_id):
