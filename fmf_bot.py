@@ -66,11 +66,10 @@ def member_in_db(connection, member_id):
 
 
 async def handle_nickname(message):
-    try:
-        member_name = '@' + message.from_user.username
-    except MessageTextIsEmpty:
+    if message.from_user.username is None:
         await message.reply(NO_NICKNAME_MSG)
         return
+    member_name = '@' + message.from_user.username
     return member_name
     # member_id = message.from_user.id
     # db_path = os.path.join(WORKDIR, 'fmf.db')
