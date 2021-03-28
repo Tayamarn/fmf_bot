@@ -129,6 +129,38 @@ def invalid_nicks_message(invalid_nicks):
         ', '.join([n.encode('utf8') for n in invalid_nicks]))
 
 
+def member_matches(connection, member_id):
+    cur = connection.cursor()
+    cur.execute('''
+        SELECT DISTINCT(m1.match_name) FROM matches as m1
+        JOIN members as mem1 on m1.member_id = mem1.id
+        JOIN matches as m2 ON LOWER(mem1.name) = LOWER(m2.match_name)
+        JOIN members as mem2 on m2.member_id = mem2.id
+        WHERE m1.member_id=? AND LOWER(m1.match_name) = LOWER(mem2.name)''',
+                (member_id,))
+    return [c[0] for c in cur.fetchall()]
+
+
+def is_match(connection, member_id, name):
+    return name in member_matches(connection, member_id)
+
+
+def matches_message(connection, member_id):
+    matches = [m.encode('utf8') for m in member_matches(connection, member_id)]
+    if matches:
+        return 'У вас взаимный интерес с этими людьми: {}'.format(
+            ', '.join(sorted(matches, key=lambda x: x.lower())))
+    else:
+        return 'Пока у вас нет взаимного интереса ни с кем, но не сдавайтесь!'
+
+
+def remove_match(connection, member_id, match_name):
+    cur = connection.cursor()
+    cur.execute('DELETE FROM matches WHERE member_id=? AND LOWER(match_name)=?',
+                (member_id, match_name.lower()))
+    connection.commit()
+
+
 def get_db():
     db_path = os.path.join(WORKDIR, 'fmf.db')
     connection = sqlite3.connect(db_path)
@@ -244,38 +276,6 @@ def init_command_parser():
     #     ['rename'],
     #     'Если у вас изменился ник – обновляет его у всех, кому вы симпатичны.')
     dp.register_message_handler(unknown_command)
-
-
-# def member_matches(connection, member_id):
-#     cur = connection.cursor()
-#     cur.execute('''
-#         SELECT DISTINCT(m1.match_name) FROM matches as m1
-#         JOIN members as mem1 on m1.member_id = mem1.id
-#         JOIN matches as m2 ON LOWER(mem1.name) = LOWER(m2.match_name)
-#         JOIN members as mem2 on m2.member_id = mem2.id
-#         WHERE m1.member_id=? AND LOWER(m1.match_name) = LOWER(mem2.name)''',
-#                 (member_id,))
-#     return [c[0] for c in cur.fetchall()]
-
-
-# def is_match(connection, member_id, name):
-#     return name in member_matches(connection, member_id)
-
-
-# def matches_message(connection, member_id):
-#     matches = [m.encode('utf8') for m in member_matches(connection, member_id)]
-#     if matches:
-#         return 'У вас взаимный интерес с этими людьми: {}'.format(
-#             ', '.join(sorted(matches, key=lambda x: x.lower())))
-#     else:
-#         return 'Пока у вас нет взаимного интереса ни с кем, но не сдавайтесь!'
-
-
-# def remove_match(connection, member_id, match_name):
-#     cur = connection.cursor()
-#     cur.execute('DELETE FROM matches WHERE member_id=? AND LOWER(match_name)=?',
-#                 (member_id, match_name.lower()))
-#     connection.commit()
 
 
 # def congratulations_messages(connection, member_id, match):
