@@ -113,7 +113,7 @@ async def add_command(message: types.Message):
     nickname = await handle_nickname(message)
     if nickname is None:
         return
-    params = message.get_args()
+    params = message.get_args().split()
     await message.reply(f'Add command with params {params}, type {type(params)}')
 
 
