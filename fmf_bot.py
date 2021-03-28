@@ -12,6 +12,7 @@ import asyncio
 from aiogram import Bot, types
 from aiogram.dispatcher import Dispatcher
 from aiogram.utils import executor
+from aiogram.utils.exceptions import MessageTextIsEmpty
 
 from command_parser import CommandParser
 
@@ -64,18 +65,34 @@ def member_in_db(connection, member_id):
     return cur.fetchone()[0] > 0
 
 
+def handle_nickname(func):
+    async def wrapped(message):
+        try:
+            member_name = '@' + message.from_user.username
+        except MessageTextIsEmpty:
+            await message.reply(NO_NICKNAME_MSG)
+            return
+        await func(message)
+    # member_id = message.from_user.id
+    # db_path = os.path.join(WORKDIR, 'fmf.db')
+    # connection = sqlite3.connect(db_path)
+
+#     if not member_in_db(connection, member_id):
+#         add_member(connection, member_id, member_name, chat_id)
+#     elif member_changed_name(connection, member_id, member_name):
+#         update_name(connection, member_id, member_name)
+#     handle_command(command, connection, member_id, chat_id)
+
+
 # def add_member(connection, member_id, member_name, chat_id):
 #     cur = connection.cursor()
 #     cur.execute('INSERT INTO members (id, name, chat) VALUES (?, ?, ?)',
 #                 (member_id, member_name, chat_id))
 #     connection.commit()
 
+@handle_nickname
 async def add_member(message: types.Message):
-    try:
-        await message.reply(message.from_user.username)
-    except:
-        import traceback
-        await message.reply(traceback.format_exc())
+    await message.reply('Add command')
 
 
 async def send_welcome(message: types.Message):
