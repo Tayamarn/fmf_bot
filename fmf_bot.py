@@ -5,8 +5,6 @@ import re
 import sqlite3
 import time
 
-# import telepot
-# from telepot.loop import MessageLoop
 import aiohttp
 import asyncio
 from aiogram import Bot, types
@@ -43,6 +41,11 @@ HELP_MESSAGE = '''Этот бот предназначен для поиска �
 Удачи в поисках!
 '''
 WORKDIR = os.path.abspath(os.path.dirname(__file__))
+
+
+class NoNickname(Exception):
+    pass
+
 
 def read_token():
     token_file_name = os.path.join(WORKDIR, 'fmf_bot_token')
@@ -89,6 +92,43 @@ def update_name(connection, member_id, member_name):
     connection.commit()
 
 
+def add_match(connection, member_id, match_name):
+    cur = connection.cursor()
+    cur.execute('DELETE FROM matches WHERE member_id=? AND LOWER(match_name)=?',
+                (member_id, match_name.lower()))
+    cur.execute('INSERT INTO matches (member_id, match_name) VALUES (?, ?)',
+                (member_id, match_name))
+    connection.commit()
+
+
+def check_new_matches(connection, member_id, new_matches):
+    matches = member_matches(connection, member_id)
+    new_matches = ['@' + n if not n.startswith('@') else n for n in new_matches]
+    for match in new_matches:
+        if match in matches:
+            congratulations_messages(connection, member_id, match)
+
+
+def member_likes(connection, member_id):
+    cur = connection.cursor()
+    cur.execute('SELECT match_name FROM matches WHERE member_id=?',
+                (member_id,))
+    return [c[0] for c in cur.fetchall()]
+
+
+def likes_message(connection, member_id):
+    likes = [l.encode('utf8') for l in member_likes(connection, member_id)]
+    if not likes:
+        return 'Вы пока никого не добавили в список.'
+    return 'Ваш список: {}'.format(
+        ', '.join(sorted(likes, key=lambda x: x.lower())))
+
+
+def invalid_nicks_message(invalid_nicks):
+    return 'Это - не имена пользователей! Повнимательнее :)\n{}'.format(
+        ', '.join([n.encode('utf8') for n in invalid_nicks]))
+
+
 def get_db():
     db_path = os.path.join(WORKDIR, 'fmf.db')
     connection = sqlite3.connect(db_path)
@@ -98,7 +138,7 @@ def get_db():
 async def handle_nickname(message):
     if message.from_user.username is None:
         await message.reply(NO_NICKNAME_MSG)
-        return
+        raise NoNickname
     member_name = '@' + message.from_user.username
     member_id = message.from_user.id
     connection = get_db()
@@ -106,15 +146,31 @@ async def handle_nickname(message):
         add_member_to_db(connection, member_id, member_name, member_id)
     elif member_changed_name(connection, member_id, member_name):
         update_name(connection, member_id, member_name)
-    return member_name
+    return member_name, member_id
 
 
 async def add_command(message: types.Message):
-    nickname = await handle_nickname(message)
-    if nickname is None:
+    try:
+        member_name, member_id = await handle_nickname(message)
+    except NoNickname:
         return
     params = message.get_args().split()
-    await message.reply(f'Add command with params {params}, type {type(params)}')
+    if any((OWN_NAME.match(p) for p in params)):
+        bot.sendMessage(chat_id, 'Это так неожиданно! 😘')
+    valid_nick_pattern = re.compile(r'^\@?[A-Za-z]\w{4}\w*$')
+    invalid_nicks = []
+    for match_name in params:
+        if not valid_nick_pattern.match(match_name):
+            invalid_nicks.append(match_name)
+            continue
+        if not match_name.startswith('@'):
+            match_name = '@' + match_name
+        add_match(connection, member_id, match_name)
+    check_new_matches(connection, member_id, params)
+    msg = likes_message(connection, member_id)
+    if invalid_nicks:
+        msg = '\n'.join([msg, invalid_nicks_message(invalid_nicks)])
+    await message.reply(msg)
 
 
 # def handle_add_command(params, connection, member_id, chat_id):
@@ -189,26 +245,6 @@ def init_command_parser():
     dp.register_message_handler(unknown_command)
 
 
-# def member_likes(connection, member_id):
-#     cur = connection.cursor()
-#     cur.execute('SELECT match_name FROM matches WHERE member_id=?',
-#                 (member_id,))
-#     return [c[0] for c in cur.fetchall()]
-
-
-# def likes_message(connection, member_id):
-#     likes = [l.encode('utf8') for l in member_likes(connection, member_id)]
-#     if not likes:
-#         return 'Вы пока никого не добавили в список.'
-#     return 'Ваш список: {}'.format(
-#         ', '.join(sorted(likes, key=lambda x: x.lower())))
-
-
-# def invalid_nicks_message(invalid_nicks):
-#     return 'Это - не имена пользователей! Повнимательнее :)\n{}'.format(
-#         ', '.join([n.encode('utf8') for n in invalid_nicks]))
-
-
 # def member_matches(connection, member_id):
 #     cur = connection.cursor()
 #     cur.execute('''
@@ -234,15 +270,6 @@ def init_command_parser():
 #         return 'Пока у вас нет взаимного интереса ни с кем, но не сдавайтесь!'
 
 
-# def add_match(connection, member_id, match_name):
-#     cur = connection.cursor()
-#     cur.execute('DELETE FROM matches WHERE member_id=? AND LOWER(match_name)=?',
-#                 (member_id, match_name.lower()))
-#     cur.execute('INSERT INTO matches (member_id, match_name) VALUES (?, ?)',
-#                 (member_id, match_name))
-#     connection.commit()
-
-
 # def remove_match(connection, member_id, match_name):
 #     cur = connection.cursor()
 #     cur.execute('DELETE FROM matches WHERE member_id=? AND LOWER(match_name)=?',
@@ -260,14 +287,6 @@ def init_command_parser():
 #                 (match,))
 #     chat_id = cur.fetchone()[0]
 #     bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(name.encode('utf8')))
-
-
-# def check_new_matches(connection, member_id, new_matches):
-#     matches = member_matches(connection, member_id)
-#     new_matches = ['@' + n if not n.startswith('@') else n for n in new_matches]
-#     for match in new_matches:
-#         if match in matches:
-#             congratulations_messages(connection, member_id, match)
 
 
 # def handle_remove_command(params, connection, member_id, chat_id):
