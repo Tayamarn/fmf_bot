@@ -159,6 +159,18 @@ def remove_match(connection, member_id, match_name):
     connection.commit()
 
 
+def congratulations_messages(connection, member_id, match):
+    cur = connection.cursor()
+    cur.execute('SELECT name, chat FROM members WHERE id=?',
+                (member_id,))
+    name, chat_id = cur.fetchone()
+    bot.send_message(chat_id, 'У вас совпадение с {}. Удачи!'.format(match))
+    cur.execute('SELECT chat FROM members WHERE LOWER(name)=LOWER(?)',
+                (match,))
+    chat_id = cur.fetchone()[0]
+    bot.send_message(chat_id, 'У вас совпадение с {}. Удачи!'.format(name))
+
+
 def get_db():
     db_path = os.path.join(WORKDIR, 'fmf.db')
     connection = sqlite3.connect(db_path)
@@ -204,23 +216,18 @@ async def add_command(message: types.Message):
     await message.reply(msg)
 
 
-# def handle_add_command(params, connection, member_id, chat_id):
-#     if any((OWN_NAME.match(p) for p in params)):
-#         bot.sendMessage(chat_id, 'Это так неожиданно! 😘')
-#     valid_nick_pattern = re.compile('^\@?[A-Za-z]\w{4}\w*$')
-#     invalid_nicks = []
-#     for match_name in params:
-#         if not valid_nick_pattern.match(match_name):
-#             invalid_nicks.append(match_name)
-#             continue
-#         if not match_name.startswith('@'):
-#             match_name = '@' + match_name
-#         add_match(connection, member_id, match_name)
-#     check_new_matches(connection, member_id, params)
-#     msg = likes_message(connection, member_id)
-#     if invalid_nicks:
-#         msg = '\n'.join([msg, invalid_nicks_message(invalid_nicks)])
-#     bot.sendMessage(chat_id, msg)
+async def remove_command(message: types.Message):
+    try:
+        member_name, member_id = await handle_nickname(message)
+    except NoNickname:
+        return
+    params = message.get_args().split()
+    connection = get_db()
+    for name in params:
+        if not name.startswith('@'):
+            name = '@' + name
+        remove_match(connection, member_id, name)
+    await message.reply(likes_message(connection, member_id))
 
 
 async def help_message(message: types.Message):
@@ -250,12 +257,13 @@ def init_command_parser():
         'Добавить в список симпатичных вам людей одного или нескольких человек',
         nargs='*',
         arg_name='name')
-    # command_parser.registerCommand(
-    #     FmfBotCommand.REMOVE,
-    #     ['rm', 'remove'],
-    #     'Удалить из списка симпатичных вам людей одного или нескольких человек',
-    #     nargs='*',
-    #     arg_name='name')
+    command_parser.registerCommand(
+        FmfBotCommand.REMOVE,
+        remove_command,
+        ['rm', 'remove'],
+        'Удалить из списка симпатичных вам людей одного или нескольких человек',
+        nargs='*',
+        arg_name='name')
     # command_parser.registerCommand(
     #     FmfBotCommand.LIST,
     #     ['l', 'list'],
@@ -274,26 +282,6 @@ def init_command_parser():
     #     ['rename'],
     #     'Если у вас изменился ник – обновляет его у всех, кому вы симпатичны.')
     dp.register_message_handler(unknown_command)
-
-
-# def congratulations_messages(connection, member_id, match):
-#     cur = connection.cursor()
-#     cur.execute('SELECT name, chat FROM members WHERE id=?',
-#                 (member_id,))
-#     name, chat_id = cur.fetchone()
-#     bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(match))
-#     cur.execute('SELECT chat FROM members WHERE LOWER(name)=LOWER(?)',
-#                 (match,))
-#     chat_id = cur.fetchone()[0]
-#     bot.sendMessage(chat_id, 'У вас совпадение с {}. Удачи!'.format(name))
-
-
-# def handle_remove_command(params, connection, member_id, chat_id):
-#     for name in params:
-#         if not name.startswith('@'):
-#             name = '@' + name
-#         remove_match(connection, member_id, name)
-#     bot.sendMessage(chat_id, likes_message(connection, member_id))
 
 
 # def handle_rename_command(params, connection, member_id, chat_id):
