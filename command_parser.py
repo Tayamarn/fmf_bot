@@ -42,8 +42,12 @@ class CommandDescription():
         return None
 
     def getHelp(self):
-        result = []
-        result += [COMMAND_PREFIX + name for name in self.names]
+        commands = [COMMAND_PREFIX + name for name in self.names]
+
+        result = [commands[0]]
+        if len(commands) > 1:
+            result.append(f"(синонимы: {', '.join(commands[1:])})")
+
         if self.nargs:
             result += [self.getArgsHelp()]
         result += ['-', self.help]
