@@ -230,6 +230,43 @@ async def remove_command(message: types.Message):
     await message.reply(likes_message(connection, member_id))
 
 
+async def list_command(message: types.Message):
+    try:
+        member_name, member_id = await handle_nickname(message)
+    except NoNickname:
+        return
+    params = message.get_args().split()
+    connection = get_db()
+    await message.reply(likes_message(connection, member_id))
+
+
+async def match_command(message: types.Message):
+    try:
+        member_name, member_id = await handle_nickname(message)
+    except NoNickname:
+        return
+    params = message.get_args().split()
+    connection = get_db()
+    await message.reply(matches_message(connection, member_id))
+
+
+async def rename_command(message: types.Message):
+    try:
+        member_name, member_id = await handle_nickname(message)
+    except NoNickname:
+        return
+    connection = get_db()
+    cur = connection.cursor()
+    cur.execute('SELECT name, previous_name FROM members WHERE id=?',
+                (member_id,))
+    name, previous_name = cur.fetchone()
+    if previous_name is not None:
+        cur.execute('UPDATE matches SET match_name=? WHERE match_name=?',
+                    (name, previous_name))
+        connection.commit()
+    await message.reply('OK')
+
+
 async def help_message(message: types.Message):
     await message.reply(HELP_MESSAGE.format(command_parser.getHelp()))
 
@@ -264,72 +301,27 @@ def init_command_parser():
         'Удалить из списка симпатичных вам людей одного или нескольких человек',
         nargs='*',
         arg_name='name')
-    # command_parser.registerCommand(
-    #     FmfBotCommand.LIST,
-    #     ['l', 'list'],
-    #     'Показать список симпатичных вам людей')
-    # command_parser.registerCommand(
-    #     FmfBotCommand.MATCHES,
-    #     ['m', 'matches'],
-    #     'Показать список людей, с которыми у вас появилась взаимность')
+    command_parser.registerCommand(
+        FmfBotCommand.LIST,
+        list_command,
+        ['l', 'list'],
+        'Показать список симпатичных вам людей')
+    command_parser.registerCommand(
+        FmfBotCommand.MATCHES,
+        match_command,
+        ['m', 'matches'],
+        'Показать список людей, с которыми у вас появилась взаимность')
     command_parser.registerCommand(
         FmfBotCommand.HELP,
         help_message,
         ['h', 'help', 'start'],
         'Выводит это сообщение')
-    # command_parser.registerCommand(
-    #     FmfBotCommand.RENAME,
-    #     ['rename'],
-    #     'Если у вас изменился ник – обновляет его у всех, кому вы симпатичны.')
+    command_parser.registerCommand(
+        FmfBotCommand.RENAME,
+        rename_command,
+        ['rename'],
+        'Если у вас изменился ник – обновляет его у всех, кому вы симпатичны.')
     dp.register_message_handler(unknown_command)
-
-
-# def handle_rename_command(params, connection, member_id, chat_id):
-#     cur = connection.cursor()
-#     cur.execute('SELECT name, previous_name FROM members WHERE id=?',
-#                 (member_id,))
-#     name, previous_name = cur.fetchone()
-#     if previous_name is not None:
-#         cur.execute('UPDATE matches SET match_name=? WHERE match_name=?',
-#                     (name, previous_name))
-#         connection.commit()
-#     bot.sendMessage(chat_id, 'OK')
-
-
-# def handle_command(command, connection, member_id, chat_id):
-#     if not command or command.id == FmfBotCommand.HELP:
-#         show_help(chat_id)
-#     elif command.id == FmfBotCommand.ADD:
-#         handle_add_command(command.params, connection, member_id, chat_id)
-#     elif command.id == FmfBotCommand.REMOVE:
-#         handle_remove_command(command.params, connection, member_id, chat_id)
-#     elif command.id == FmfBotCommand.LIST:
-#         bot.sendMessage(chat_id, likes_message(connection, member_id))
-#     elif command.id == FmfBotCommand.MATCHES:
-#         bot.sendMessage(chat_id, matches_message(connection, member_id))
-#     elif command.id == FmfBotCommand.RENAME:
-#         handle_rename_command(command.params, connection, member_id, chat_id)
-#     else:
-#         bot.sendMessage(chat_id, 'Команда ещё не реализована, потерпите немного.')
-#         show_help(chat_id)
-
-# def handle(msg):
-#     chat_id = msg['chat']['id']
-#     try:
-#         member_name = '@' + msg['from']['username']
-#     except KeyError:
-#         bot.sendMessage(chat_id, NO_NICKNAME_MSG)
-#         return
-#     command = command_parser.parse(msg['text'])
-#     member_id = msg['from']['id']
-#     db_path = os.path.join(WORKDIR, 'fmf.db')
-#     connection = sqlite3.connect(db_path)
-
-#     if not member_in_db(connection, member_id):
-#         add_member(connection, member_id, member_name, chat_id)
-#     elif member_changed_name(connection, member_id, member_name):
-#         update_name(connection, member_id, member_name)
-#     handle_command(command, connection, member_id, chat_id)
 
 
 if __name__ == '__main__':
