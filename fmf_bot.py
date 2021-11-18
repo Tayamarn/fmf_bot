@@ -209,7 +209,7 @@ async def add_command(message: types.Message):
         if not match_name.startswith('@'):
             match_name = '@' + match_name
         add_match(connection, member_id, match_name)
-    check_new_matches(connection, member_id, params)
+    await check_new_matches(connection, member_id, params)
     msg = likes_message(connection, member_id)
     if invalid_nicks:
         msg = '\n'.join([msg, invalid_nicks_message(invalid_nicks)])
