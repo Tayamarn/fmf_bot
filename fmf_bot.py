@@ -101,12 +101,12 @@ def add_match(connection, member_id, match_name):
     connection.commit()
 
 
-def check_new_matches(connection, member_id, new_matches):
+async def check_new_matches(connection, member_id, new_matches):
     matches = member_matches(connection, member_id)
     new_matches = ['@' + n if not n.startswith('@') else n for n in new_matches]
     for match in new_matches:
         if match in matches:
-            congratulations_messages(connection, member_id, match)
+            await congratulations_messages(connection, member_id, match)
 
 
 def member_likes(connection, member_id):
@@ -159,16 +159,16 @@ def remove_match(connection, member_id, match_name):
     connection.commit()
 
 
-def congratulations_messages(connection, member_id, match):
+async def congratulations_messages(connection, member_id, match):
     cur = connection.cursor()
     cur.execute('SELECT name, chat FROM members WHERE id=?',
                 (member_id,))
     name, chat_id = cur.fetchone()
-    bot.send_message(chat_id, 'У вас совпадение с {}. Удачи!'.format(match))
+    await bot.send_message(chat_id, 'У вас совпадение с {}. Удачи!'.format(match))
     cur.execute('SELECT chat FROM members WHERE LOWER(name)=LOWER(?)',
                 (match,))
     chat_id = cur.fetchone()[0]
-    bot.send_message(chat_id, 'У вас совпадение с {}. Удачи!'.format(name))
+    await bot.send_message(chat_id, 'У вас совпадение с {}. Удачи!'.format(name))
 
 
 def get_db():
@@ -198,7 +198,7 @@ async def add_command(message: types.Message):
         return
     params = message.get_args().split()
     if any((OWN_NAME.match(p) for p in params)):
-        bot.sendMessage(chat_id, 'Это так неожиданно! 😘')
+        await bot.send_message(message.from_user.id, 'Это так неожиданно! 😘')
     valid_nick_pattern = re.compile(r'^\@?[A-Za-z]\w{4}\w*$')
     invalid_nicks = []
     connection = get_db()

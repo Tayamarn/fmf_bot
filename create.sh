@@ -11,7 +11,7 @@ if [ ! -d "$WORKDIR" ]
 then
     mkdir "$WORKDIR"
     git clone https://github.com/Tayamarn/fmf_bot.git $WORKDIR
-    virtualenv $WORKDIR/venv
+    virtualenv -p python3 $WORKDIR/venv
     source $WORKDIR/venv/bin/activate
     pip install aiogram
     deactivate
