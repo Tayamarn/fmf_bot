@@ -17,12 +17,13 @@ class CommandDescription():
     Single command definition
     '''
 
-    def __init__(self, id, names, help, nargs=None, arg_name=None):
+    def __init__(self, id, method, names, help, nargs=None, arg_name=None):
         self.id = id
         self.names = names
         self.help = help
         self.nargs = nargs
         self.arg_name = arg_name
+        self.method = method
         # Default value to create one-param commands conviniently.
         if arg_name and not self.nargs:
             self.nargs = '1'
@@ -65,15 +66,17 @@ class Command():
 class CommandParser():
     """Class for parsing custom commands"""
 
-    def __init__(self):
+    def __init__(self, dispatcher):
+        self.dispatcher = dispatcher
         self.commands = []
 
-    def registerCommand(self, id, name, help, nargs=None, arg_name=None):
+    def registerCommand(self, id, method, name, help, nargs=None, arg_name=None):
         """
         Register new command with the given set of names
 
         Keyword arguments:
         id -- Unique external identifier of the command.
+        method - Method to run when the command is executed.
         name -- Name of the command or list of possible names.
         help -- Human-readable description of the command.
         nargs -- Argument counter (for help only). Can be '1', '?', '*'. Optional.
@@ -81,7 +84,8 @@ class CommandParser():
         """
         if type(name) is not list:
             name = [name]
-        self.commands.append(CommandDescription(id, name, help, nargs, arg_name))
+        self.commands.append(CommandDescription(id, method, name, help, nargs, arg_name))
+        self.dispatcher.register_message_handler(method, commands=name)
 
     def getHelp(self):
         return '\n'.join([c.getHelp() for c in self.commands])

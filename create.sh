@@ -1,5 +1,6 @@
 #!/bin/bash
-apt-get install -y sqlite python python-pip python-virtualenv supervisor git
+apt-get update
+apt-get install -y sqlite python3 python3-pip python3-virtualenv supervisor git
 LOG_DIR=/var/log/fmf_bot
 if [ ! -d "$LOG_DIR" ]
 then
@@ -10,9 +11,9 @@ if [ ! -d "$WORKDIR" ]
 then
     mkdir "$WORKDIR"
     git clone https://github.com/Tayamarn/fmf_bot.git $WORKDIR
-    virtualenv $WORKDIR/venv
+    virtualenv -p python3 $WORKDIR/venv
     source $WORKDIR/venv/bin/activate
-    pip install telepot
+    pip install aiogram
     deactivate
 fi
 
